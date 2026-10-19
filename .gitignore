@@ -1,0 +1,5 @@
+config.php
+*.sqlite
+dados/sessoes/
+*.zip
+.claude/

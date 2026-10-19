@@ -1,0 +1,1196 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1f2933">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Comanda">
+<title>Comanda</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icone.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icone-192.png">
+<style>
+:root {
+  --bg: #f3f4f6; --card: #ffffff; --txt: #111827; --sub: #6b7280; --linha: #e5e7eb;
+  --pri: #c2410c; --pri-txt: #ffffff; --pri-suave: #ffedd5;
+  --ok: #15803d; --ok-suave: #dcfce7; --perigo: #b91c1c; --perigo-suave: #fee2e2;
+  --barra: #1f2933; --barra-txt: #f9fafb; --sombra: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.05);
+  --raio: 14px;
+  --seguro-baixo: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f1419; --card: #1a2129; --txt: #f3f4f6; --sub: #9ca3af; --linha: #2b333d;
+    --pri: #f97316; --pri-txt: #1a0d03; --pri-suave: #3a1f0d;
+    --ok: #4ade80; --ok-suave: #12301d; --perigo: #f87171; --perigo-suave: #3b1515;
+    --barra: #0b0f13; --sombra: none;
+  }
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; background: var(--bg); color: var(--txt); }
+body { font: 16px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; min-height: 100vh; min-height: 100dvh; overscroll-behavior-y: contain; }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+.oculto { display: none !important; }
+
+/* barra superior */
+.topo { position: sticky; top: 0; z-index: 20; background: var(--barra); color: var(--barra-txt);
+  padding: calc(env(safe-area-inset-top, 0px) + 6px) 8px 6px; display: flex; align-items: center; gap: 4px; min-height: 56px; }
+.topo h1 { font-size: 18px; margin: 0; line-height: 1.15; flex: 1; min-width: 0; padding: 0 6px; }
+.topo h1 small { display: block; font-size: 12px; font-weight: 400; opacity: .75; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.icone-btn { width: 44px; height: 44px; border: 0; border-radius: 50%; background: transparent; color: inherit; display: grid; place-items: center; flex: none; }
+.icone-btn:active { background: rgba(255,255,255,.15); }
+.icone-btn svg { width: 24px; height: 24px; }
+
+main { max-width: 720px; margin: 0 auto; padding: 12px 12px calc(96px + var(--seguro-baixo)); }
+
+/* elementos */
+.cartao { background: var(--card); border-radius: var(--raio); box-shadow: var(--sombra); padding: 14px; }
+.campo { display: block; margin-bottom: 12px; }
+.campo span { display: block; font-size: 13px; color: var(--sub); margin-bottom: 4px; }
+.entrada { width: 100%; height: 48px; border: 1.5px solid var(--linha); border-radius: 12px; background: var(--card); padding: 0 14px; font-size: 16px; outline: none; }
+.entrada:focus { border-color: var(--pri); }
+.btn { height: 48px; padding: 0 18px; border: 0; border-radius: 12px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: var(--linha); color: var(--txt); }
+.btn svg { width: 20px; height: 20px; }
+.btn:active { transform: scale(.98); }
+.btn:disabled { opacity: .55; }
+.btn-pri { background: var(--pri); color: var(--pri-txt); }
+.btn-perigo { background: var(--perigo); color: #fff; }
+.btn-ok { background: var(--ok); color: #fff; }
+.btn-largo { width: 100%; }
+.btn-grande { height: 56px; font-size: 17px; }
+.vazio { text-align: center; color: var(--sub); padding: 48px 16px; }
+.vazio svg { width: 56px; height: 56px; opacity: .4; }
+.aviso { border-radius: 12px; padding: 12px 14px; margin-bottom: 12px; font-size: 14px; }
+.aviso-perigo { background: var(--perigo-suave); color: var(--perigo); }
+.aviso-info { background: var(--pri-suave); color: var(--txt); }
+.carregando { display: flex; justify-content: center; padding: 40px; }
+.giro { width: 32px; height: 32px; border: 3px solid var(--linha); border-top-color: var(--pri); border-radius: 50%; animation: gira .8s linear infinite; }
+@keyframes gira { to { transform: rotate(360deg); } }
+.etiqueta { display: inline-block; font-size: 12px; padding: 2px 8px; border-radius: 999px; background: var(--linha); color: var(--sub); }
+
+/* barra de ações fixa embaixo */
+.rodape { position: fixed; left: 0; right: 0; bottom: 0; z-index: 15; background: var(--card); border-top: 1px solid var(--linha);
+  padding: 10px 12px calc(10px + var(--seguro-baixo)); display: flex; gap: 10px; }
+.rodape > * { max-width: 720px; }
+.rodape .btn-pri { flex: 1; }
+@media (min-width: 744px) { .rodape { padding-left: calc(50% - 348px); padding-right: calc(50% - 348px); } }
+
+/* login */
+.login { max-width: 380px; margin: 8vh auto 0; }
+.login .marca { text-align: center; margin-bottom: 20px; }
+.login .marca img { width: 72px; height: 72px; }
+.login .marca h2 { margin: 8px 0 0; }
+.login .marca p { margin: 2px 0 0; color: var(--sub); }
+
+/* mesas */
+.ir-mesa { display: flex; gap: 8px; margin-bottom: 12px; }
+.ir-mesa .entrada { font-size: 20px; font-weight: 600; text-align: center; }
+.ir-mesa .btn { flex: none; }
+.resumo { display: flex; justify-content: space-between; color: var(--sub); font-size: 14px; margin: 4px 2px 10px; }
+.grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 10px; }
+.mesa { background: var(--card); border: 0; border-radius: var(--raio); box-shadow: var(--sombra); padding: 12px 8px 10px; text-align: center; min-height: 112px;
+  display: flex; flex-direction: column; justify-content: center; gap: 2px; border-top: 4px solid var(--pri); }
+.mesa:active { transform: scale(.97); }
+.mesa .num { font-size: 30px; font-weight: 800; line-height: 1; }
+.mesa .num small { display: block; font-size: 11px; font-weight: 600; letter-spacing: .08em; color: var(--sub); margin-bottom: 2px; }
+.mesa .val { font-weight: 700; font-size: 15px; }
+.mesa .info { font-size: 12px; color: var(--sub); }
+.mesa.vazia { border-top-color: var(--linha); }
+.mesa.demorada .info { color: var(--perigo); font-weight: 600; }
+
+/* comanda */
+.total-mesa { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px; }
+.total-mesa .rot { color: var(--sub); font-size: 14px; }
+.total-mesa .val { font-size: 30px; font-weight: 800; }
+.lista { background: var(--card); border-radius: var(--raio); box-shadow: var(--sombra); overflow: hidden; }
+.linha { display: flex; align-items: center; gap: 10px; padding: 12px 12px 12px 14px; border-bottom: 1px solid var(--linha); min-height: 60px; }
+.linha:last-child { border-bottom: 0; }
+.linha .meio { flex: 1; min-width: 0; }
+.linha .tit { font-weight: 600; overflow-wrap: anywhere; }
+.linha .tit b { color: var(--pri); }
+.linha .det { font-size: 13px; color: var(--sub); }
+.linha .dir { text-align: right; font-weight: 700; white-space: nowrap; }
+.linha .icone-btn { color: var(--perigo); width: 40px; height: 40px; }
+.linha .icone-btn:active { background: var(--perigo-suave); }
+button.linha { width: 100%; border: 0; border-bottom: 1px solid var(--linha); background: transparent; text-align: left; }
+button.linha:active { background: var(--pri-suave); }
+
+/* busca */
+.busca { position: sticky; top: 56px; z-index: 10; background: var(--bg); padding: 4px 0 10px; display: flex; gap: 8px; }
+.busca .entrada { flex: 1; height: 52px; font-size: 17px; }
+.busca .btn { width: 52px; height: 52px; padding: 0; flex: none; }
+.preco { color: var(--ok); }
+.subtitulo { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--sub); margin: 18px 4px 8px; font-weight: 600; }
+
+/* folha inferior (bottom sheet) */
+.fundo { position: fixed; inset: 0; z-index: 40; background: rgba(0,0,0,.45); display: flex; align-items: flex-end; justify-content: center; animation: aparece .15s; }
+.folha { background: var(--card); width: 100%; max-width: 560px; border-radius: 20px 20px 0 0; padding: 8px 16px calc(16px + var(--seguro-baixo));
+  max-height: 92vh; overflow-y: auto; animation: sobe .2s ease-out; }
+.folha::before { content: ""; display: block; width: 40px; height: 4px; border-radius: 2px; background: var(--linha); margin: 0 auto 12px; }
+.folha h3 { margin: 0 0 4px; font-size: 19px; }
+.folha .sub { color: var(--sub); margin: 0 0 14px; font-size: 14px; }
+.folha .acoes { display: flex; gap: 10px; margin-top: 16px; }
+.folha .acoes .btn { flex: 1; }
+.menu-item { display: flex; align-items: center; gap: 14px; width: 100%; padding: 14px 6px; border: 0; background: transparent; text-align: left; font-size: 16px; border-radius: 10px; }
+.menu-item:active { background: var(--bg); }
+.menu-item svg { width: 22px; height: 22px; color: var(--sub); }
+.menu-item.perigo, .menu-item.perigo svg { color: var(--perigo); }
+@keyframes sobe { from { transform: translateY(40px); opacity: .6; } }
+@keyframes aparece { from { opacity: 0; } }
+
+/* quantidade */
+.qtd { display: flex; align-items: center; gap: 10px; margin: 8px 0 4px; }
+.qtd .btn { width: 64px; height: 64px; font-size: 28px; padding: 0; flex: none; border-radius: 16px; }
+.qtd .entrada { height: 64px; font-size: 28px; font-weight: 700; text-align: center; flex: 1; }
+.atalhos { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.atalhos .btn { height: 40px; padding: 0 14px; font-size: 14px; flex: 1; }
+
+/* aviso rápido (toast) */
+.toast { position: fixed; left: 12px; right: 12px; bottom: calc(84px + var(--seguro-baixo)); z-index: 60; max-width: 520px; margin: 0 auto;
+  background: #111827; color: #f9fafb; border-radius: 12px; padding: 12px 14px; display: flex; align-items: center; gap: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.25); animation: sobe .2s ease-out; font-size: 15px; }
+.toast.erro { background: #991b1b; }
+.toast span { flex: 1; }
+.toast button { border: 0; background: transparent; color: #fdba74; font-weight: 700; padding: 6px 4px; text-transform: uppercase; font-size: 14px; }
+
+/* leitor de código de barras */
+.scanner { position: fixed; inset: 0; z-index: 80; background: #000; display: flex; flex-direction: column; }
+.scanner video { flex: 1; width: 100%; object-fit: cover; min-height: 0; }
+.scanner .mira { position: absolute; left: 10%; right: 10%; top: 38%; height: 22%; border: 3px solid rgba(255,255,255,.85); border-radius: 16px; box-shadow: 0 0 0 100vmax rgba(0,0,0,.35); pointer-events: none; }
+.scanner .mira::after { content: ""; position: absolute; left: 6%; right: 6%; top: 50%; height: 2px; background: #f97316; animation: pisca 1s infinite; }
+.scanner .barra { position: absolute; left: 0; right: 0; bottom: 0; padding: 16px 16px calc(16px + var(--seguro-baixo)); text-align: center; color: #fff; }
+.scanner .barra p { margin: 0 0 12px; text-shadow: 0 1px 3px #000; }
+@keyframes pisca { 50% { opacity: .2; } }
+
+/* histórico */
+.hist .linha { align-items: flex-start; }
+.hist .hora { font-variant-numeric: tabular-nums; color: var(--sub); font-size: 13px; width: 44px; flex: none; padding-top: 2px; }
+
+/* impressão da conferência */
+#impressao { display: none; }
+@media print {
+  body > *:not(#impressao) { display: none !important; }
+  #impressao { display: block; font: 12px/1.35 monospace; color: #000; width: 72mm; }
+  #impressao h2 { font-size: 15px; text-align: center; margin: 0 0 4px; }
+  #impressao table { width: 100%; border-collapse: collapse; }
+  #impressao td { vertical-align: top; padding: 1px 0; }
+  #impressao .r { text-align: right; white-space: nowrap; }
+  #impressao hr { border: 0; border-top: 1px dashed #000; }
+  @page { margin: 4mm; }
+}
+</style>
+</head>
+<body>
+<header class="topo" id="topo">
+  <button class="icone-btn oculto" id="voltar" aria-label="Voltar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+  <h1 id="titulo">Comanda</h1>
+  <button class="icone-btn oculto" id="atualizar" aria-label="Atualizar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg></button>
+  <button class="icone-btn oculto" id="menu" aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+</header>
+<main id="tela"><div class="carregando"><div class="giro"></div></div></main>
+<div id="rodape" class="rodape oculto"></div>
+<div id="impressao"></div>
+
+<script>
+'use strict';
+
+/* ---------- utilidades ---------- */
+const $ = (s, el = document) => el.querySelector(s);
+const tela = $('#tela');
+const rodape = $('#rodape');
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const brl = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+const dinheiro = v => brl.format(Number(v) || 0);
+const fmtQtd = (q, frac) => frac || q % 1 ? Number(q).toLocaleString('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 3 }) : String(Math.round(q));
+const lerData = s => s instanceof Date ? s : s ? new Date(String(s).replace(' ', 'T')) : null;
+const hora = s => { const d = lerData(s); return d ? d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : ''; };
+function tempoAberta(abertura, agora) {
+  const a = lerData(abertura), b = lerData(agora);
+  if (!a || !b) return '';
+  const min = Math.max(0, Math.round((b - a) / 60000));
+  if (min < 60) return min + ' min';
+  const h = Math.floor(min / 60);
+  return h >= 24 ? Math.floor(h / 24) + 'd ' + (h % 24) + 'h' : h + 'h' + String(min % 60).padStart(2, '0');
+}
+function minutosAberta(abertura, agora) {
+  const a = lerData(abertura), b = lerData(agora);
+  return a && b ? (b - a) / 60000 : 0;
+}
+const vibra = ms => { try { navigator.vibrate && navigator.vibrate(ms); } catch (e) {} };
+
+const ICONES = {
+  mesa: '<path d="M3 10h18M5 10v9M19 10v9M7 6h10l2 4H5z"/>',
+  usuarios: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M21.5 20a6.5 6.5 0 0 0-4-6"/>',
+  hist: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  conta: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+  sair: '<path d="M15 4h4a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4M10 17l5-5-5-5M15 12H3"/>',
+  lixo: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/>',
+  mais: '<path d="M12 5v14M5 12h14"/>',
+  troca: '<path d="M7 7h13l-3-3M17 17H4l3 3"/>',
+  imprimir: '<path d="M6 9V3h12v6M6 18H4v-7h16v7h-2M8 14h8v7H8z"/>',
+  cancelar: '<circle cx="12" cy="12" r="9"/><path d="M8 8l8 8M16 8l-8 8"/>',
+  camera: '<path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 8v8M10 8v8M13 8v8M17 8v8"/>',
+  busca: '<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>',
+  editar: '<path d="M4 20h4L19 9l-4-4L4 16z"/>',
+  sysmo: '<ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/>',
+  vazio: '<path d="M3 10h18M5 10v9M19 10v9M7 6h10l2 4H5z"/>',
+};
+const icone = (n, extra = '') => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ${extra}>${ICONES[n]}</svg>`;
+
+/* ---------- servidor ---------- */
+const S = { sistema: 'Comanda', usuario: null, lojas: [], lojaId: null, garcomExcluiMin: 10, timer: null };
+const PAPEL = { super: 'Administrador geral', admin: 'Administrador', garcom: 'Garçom' };
+const ehAdm = () => !!S.usuario && (S.usuario.papel === 'admin' || S.usuario.papel === 'super');
+const ehSuper = () => !!S.usuario && S.usuario.papel === 'super';
+const lojaAtual = () => S.lojas.find(l => l.id === S.lojaId) || null;
+const chaveLoja = () => 'comanda.loja.' + (S.usuario ? S.usuario.id : '');
+// nome da loja no topo; com lojas de mais de uma empresa, mostra a empresa junto
+function nomeLoja() {
+  const l = lojaAtual();
+  if (!l) return '';
+  return new Set(S.lojas.map(x => x.empresaId)).size > 1 ? l.empresa + ' · ' + l.nome : l.nome;
+}
+// lembra a última loja usada neste celular; com uma loja só, entra direto nela
+function definirLojas(lojas) {
+  S.lojas = lojas || [];
+  let id = null;
+  try { id = +localStorage.getItem(chaveLoja()) || null; } catch (e) {}
+  if (!S.lojas.some(l => l.id === id)) id = S.lojas.length === 1 ? S.lojas[0].id : null;
+  S.lojaId = id;
+}
+function escolherLoja(id) {
+  if (id !== S.lojaId) { mesasCache = []; comandaAtual = null; lancadosAgora = []; }
+  S.lojaId = id;
+  try { localStorage.setItem(chaveLoja(), String(id)); } catch (e) {}
+}
+
+async function api(acao, dados = {}) {
+  let r, j;
+  try {
+    r = await fetch('api.php', {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'X-Comanda': '1' },
+      body: JSON.stringify({ loja: S.lojaId, ...dados, acao }),
+    });
+  } catch (e) {
+    throw new Error('Sem internet. Confira o Wi-Fi ou os dados móveis.');
+  }
+  try { j = await r.json(); } catch (e) { throw new Error('O servidor respondeu com erro (' + r.status + ').'); }
+  if (r.status === 401 && acao !== 'entrar' && acao !== 'minhaSenha') {
+    S.usuario = null;
+    telaLogin(j.erro);
+    throw Object.assign(new Error(j.erro || 'Entre de novo.'), { tratado: true });
+  }
+  if (j.semLoja && S.usuario) {
+    S.lojaId = null;
+    await atualizarLojas();
+    ir('#/loja', true);
+    aviso(j.erro, { erro: true });
+    throw Object.assign(new Error(j.erro), { tratado: true });
+  }
+  if (j.erro) throw new Error(j.erro);
+  return j;
+}
+
+/* ---------- avisos e folhas ---------- */
+let toastTimer;
+function aviso(msg, { erro = false, acao = null, rotulo = 'Desfazer', ms = 3500 } = {}) {
+  document.querySelectorAll('.toast').forEach(t => t.remove());
+  clearTimeout(toastTimer);
+  const t = document.createElement('div');
+  t.className = 'toast' + (erro ? ' erro' : '');
+  t.setAttribute('role', 'status');
+  t.innerHTML = `<span>${esc(msg)}</span>${acao ? `<button>${esc(rotulo)}</button>` : ''}`;
+  if (acao) t.querySelector('button').onclick = () => { t.remove(); acao(); };
+  document.body.appendChild(t);
+  toastTimer = setTimeout(() => t.remove(), acao ? 6000 : ms);
+}
+function falha(e) {
+  if (e && e.tratado) return;
+  vibra([60, 40, 60]);
+  aviso(e && e.message ? e.message : String(e), { erro: true, ms: 5000 });
+}
+
+// folha inferior; fecha no "voltar" do celular
+let folhaAberta = null;
+function abrirFolha(html, aoMontar) {
+  // trocar uma folha por outra reaproveita a mesma entrada do histórico
+  const jaHavia = !!folhaAberta;
+  fecharFolha(true);
+  const f = document.createElement('div');
+  f.className = 'fundo';
+  f.innerHTML = `<div class="folha" role="dialog" aria-modal="true">${html}</div>`;
+  f.addEventListener('click', ev => { if (ev.target === f) fecharFolha(); });
+  document.body.appendChild(f);
+  folhaAberta = f;
+  if (!jaHavia) history.pushState({ folha: true }, '');
+  if (aoMontar) aoMontar(f.firstElementChild);
+  return f.firstElementChild;
+}
+function fecharFolha(semHistorico) {
+  if (!folhaAberta) return;
+  folhaAberta.remove();
+  folhaAberta = null;
+  if (!semHistorico && history.state && history.state.folha) history.back();
+}
+function confirmar(titulo, texto, { botao = 'Confirmar', perigo = false, motivo = false } = {}) {
+  return new Promise(ok => {
+    let resolvido = false;
+    abrirFolha(`<h3>${esc(titulo)}</h3><p class="sub">${esc(texto)}</p>
+      ${motivo ? '<label class="campo"><span>Motivo (opcional)</span><input class="entrada" id="cf-motivo" maxlength="120"></label>' : ''}
+      <div class="acoes"><button class="btn" id="cf-nao">Voltar</button><button class="btn ${perigo ? 'btn-perigo' : 'btn-pri'}" id="cf-sim">${esc(botao)}</button></div>`, f => {
+      $('#cf-nao', f).onclick = () => fecharFolha();
+      $('#cf-sim', f).onclick = () => { resolvido = true; const m = motivo ? $('#cf-motivo', f).value.trim() : true; fecharFolha(); ok(m || true); };
+    });
+    const obs = new MutationObserver(() => { if (!folhaAberta) { obs.disconnect(); if (!resolvido) ok(false); } });
+    obs.observe(document.body, { childList: true });
+  });
+}
+
+/* ---------- topo, rodapé e rotas ---------- */
+function topo(titulo, sub = '', { voltar = false, atualizar = null } = {}) {
+  $('#titulo').innerHTML = esc(titulo) + (sub ? `<small>${esc(sub)}</small>` : '');
+  $('#voltar').classList.toggle('oculto', !voltar);
+  $('#atualizar').classList.toggle('oculto', !atualizar);
+  $('#atualizar').onclick = atualizar;
+  $('#menu').classList.toggle('oculto', !S.usuario);
+  document.title = titulo + ' · Comanda';
+}
+function setRodape(html) {
+  rodape.innerHTML = html || '';
+  rodape.classList.toggle('oculto', !html);
+}
+function carregando() { tela.innerHTML = '<div class="carregando"><div class="giro"></div></div>'; }
+function ir(hash, substituir = false) {
+  if (substituir) history.replaceState(null, '', hash);
+  else history.pushState({ pai: location.hash || '#/' }, '', hash);
+  rota();
+}
+// volta pelo histórico quando a tela anterior é a esperada (assim o "voltar" do celular não repete telas)
+function voltarPara(pai) {
+  if (history.state && history.state.pai === pai) history.back();
+  else ir(pai, true);
+}
+$('#voltar').onclick = () => {
+  const h = location.hash;
+  voltarPara(/^#\/mesa\/\d+\/add/.test(h) ? h.replace(/\/add.*/, '') : '#/');
+};
+$('#menu').onclick = menuPrincipal;
+
+window.addEventListener('popstate', () => { if (folhaAberta) fecharFolha(true); });
+window.addEventListener('hashchange', () => { if (!folhaAberta) rota(); });
+document.addEventListener('visibilitychange', () => { if (!document.hidden && S.aoVoltar) S.aoVoltar(); });
+
+function rota() {
+  clearInterval(S.timer);
+  S.aoVoltar = null;
+  pararScanner();
+  setRodape('');
+  if (!S.usuario) return telaLogin();
+  const h = location.hash || '#/';
+  let m;
+  if (h === '#/conta') return telaConta();
+  if (h === '#/usuarios' && ehAdm()) return telaUsuarios();
+  if (h === '#/empresas' && ehSuper()) return telaEmpresas();
+  if (h === '#/loja' || !lojaAtual()) return telaEscolherLoja();
+  if ((m = h.match(/^#\/mesa\/(\d+)\/add$/))) return telaAdicionar(+m[1]);
+  if ((m = h.match(/^#\/mesa\/(\d+)$/))) return telaComanda(+m[1]);
+  if (h === '#/historico' && ehAdm()) return telaHistorico();
+  return telaMesas();
+}
+
+function menuPrincipal() {
+  const adm = ehAdm(), temLoja = !!lojaAtual();
+  abrirFolha(`<h3>${esc(S.usuario.nome)}</h3><p class="sub">${PAPEL[S.usuario.papel]}${temLoja ? ' · ' + esc(nomeLoja()) : ''}</p>
+    ${temLoja ? `<button class="menu-item" data-ir="#/">${icone('mesa')}Mesas abertas</button>` : ''}
+    ${S.lojas.length > 1 ? `<button class="menu-item" data-ir="#/loja">${icone('troca')}Trocar de loja</button>` : ''}
+    ${adm && temLoja ? `<button class="menu-item" data-ir="#/historico">${icone('hist')}Histórico da loja</button>` : ''}
+    ${adm ? `<button class="menu-item" data-ir="#/usuarios">${icone('usuarios')}Usuários</button>` : ''}
+    ${ehSuper() ? `<button class="menu-item" data-ir="#/empresas">${icone('sysmo')}Empresas e lojas</button>` : ''}
+    <button class="menu-item" data-ir="#/conta">${icone('conta')}Minha conta</button>
+    <button class="menu-item perigo" id="mn-sair">${icone('sair')}Sair</button>`, f => {
+    f.querySelectorAll('[data-ir]').forEach(b => b.onclick = () => { fecharFolha(true); ir(b.dataset.ir, true); });
+    $('#mn-sair', f).onclick = async () => {
+      fecharFolha(true);
+      try { await api('sair'); } catch (e) {}
+      S.usuario = null;
+      S.lojas = [];
+      S.lojaId = null;
+      history.replaceState(null, '', '#/');
+      telaLogin();
+    };
+  });
+}
+
+/* ---------- login e instalação ---------- */
+function marca() {
+  return `<div class="marca"><img src="icone.svg" alt=""><h2>${esc(S.sistema)}</h2></div>`;
+}
+function telaLogin(msg) {
+  topo(S.sistema);
+  setRodape('');
+  tela.innerHTML = `<div class="login">${marca()}
+    <form class="cartao" id="f-login" autocomplete="on">
+      ${msg ? `<div class="aviso aviso-perigo">${esc(msg)}</div>` : ''}
+      <label class="campo"><span>Login</span><input class="entrada" name="login" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" required></label>
+      <label class="campo"><span>Senha</span><input class="entrada" name="senha" type="password" autocomplete="current-password" required></label>
+      <button class="btn btn-pri btn-largo btn-grande">Entrar</button>
+    </form></div>`;
+  const f = $('#f-login');
+  const ultimo = (() => { try { return localStorage.getItem('comanda.login') || ''; } catch (e) { return ''; } })();
+  f.login.value = ultimo;
+  (ultimo ? f.senha : f.login).focus();
+  f.onsubmit = async ev => {
+    ev.preventDefault();
+    const b = f.querySelector('button');
+    b.disabled = true;
+    try {
+      const r = await api('entrar', { login: f.login.value, senha: f.senha.value });
+      try { localStorage.setItem('comanda.login', f.login.value.trim().toLowerCase()); } catch (e) {}
+      S.usuario = r.usuario;
+      definirLojas(r.lojas);
+      rota();
+    } catch (e) {
+      falha(e);
+      f.senha.value = '';
+      f.senha.focus();
+    } finally { b.disabled = false; }
+  };
+}
+function telaSetup() {
+  topo('Instalação');
+  tela.innerHTML = `<div class="login">${marca()}
+    <form class="cartao" id="f-setup">
+      <div class="aviso aviso-info">Primeiro acesso: crie o usuário administrador. A chave de instalação é a <b>SETUP_KEY</b> do config.php.</div>
+      <label class="campo"><span>Chave de instalação</span><input class="entrada" name="chave" type="password" required></label>
+      <label class="campo"><span>Seu nome</span><input class="entrada" name="nome" required maxlength="60"></label>
+      <label class="campo"><span>Login</span><input class="entrada" name="login" autocapitalize="none" autocorrect="off" required placeholder="ex.: matheus"></label>
+      <label class="campo"><span>Senha</span><input class="entrada" name="senha" type="password" autocomplete="new-password" required minlength="4"></label>
+      <button class="btn btn-pri btn-largo btn-grande">Criar administrador</button>
+    </form></div>`;
+  const f = $('#f-setup');
+  f.onsubmit = async ev => {
+    ev.preventDefault();
+    try {
+      await api('setup', Object.fromEntries(new FormData(f)));
+      await iniciar();
+    } catch (e) { falha(e); }
+  };
+}
+
+/* ---------- mesas abertas ---------- */
+let mesasCache = [];
+async function telaMesas() {
+  topo('Mesas abertas', nomeLoja(), { atualizar: () => carregarMesas(true) });
+  tela.innerHTML = `
+    <form class="ir-mesa" id="f-ir">
+      <input class="entrada" id="ir-num" inputmode="numeric" pattern="[0-9]*" placeholder="Nº da mesa" autocomplete="off" aria-label="Número da mesa">
+      <button class="btn btn-pri">${icone('busca')}Ir</button>
+    </form>
+    <div class="resumo" id="resumo"></div>
+    <div class="grade" id="grade"><div class="carregando" style="grid-column:1/-1"><div class="giro"></div></div></div>`;
+  setRodape(`<button class="btn btn-pri btn-grande" id="bt-abrir">${icone('mais')}Abrir mesa</button>`);
+  $('#bt-abrir').onclick = () => folhaAbrirMesa();
+  const num = $('#ir-num');
+  num.oninput = () => { num.value = num.value.replace(/\D/g, '').slice(0, 5); desenharMesas(); };
+  $('#f-ir').onsubmit = ev => {
+    ev.preventDefault();
+    const n = +num.value;
+    if (!n) return num.focus();
+    const m = mesasCache.find(x => x.mesa === n);
+    if (m) ir('#/mesa/' + m.seq);
+    else folhaAbrirMesa(n);
+  };
+  if (mesasCache.length) desenharMesas();
+  await carregarMesas();
+  S.timer = setInterval(() => { if (!document.hidden && !folhaAberta) carregarMesas(); }, 15000);
+  S.aoVoltar = () => carregarMesas();
+}
+let agoraServidor = null;
+async function carregarMesas(manual) {
+  try {
+    const r = await api('mesas');
+    mesasCache = r.mesas;
+    agoraServidor = r.agora;
+    if ($('#grade')) desenharMesas();
+    if (manual) aviso('Atualizado');
+  } catch (e) {
+    falha(e);
+    if ($('#grade') && !mesasCache.length) $('#grade').innerHTML = `<div class="vazio" style="grid-column:1/-1">Não foi possível carregar as mesas.<br><br><button class="btn" onclick="carregarMesas(true)">Tentar de novo</button></div>`;
+  }
+}
+function desenharMesas() {
+  const g = $('#grade');
+  if (!g) return;
+  const filtro = ($('#ir-num') || {}).value || '';
+  const lista = filtro ? mesasCache.filter(m => String(m.mesa).startsWith(filtro)) : mesasCache;
+  const total = mesasCache.reduce((s, m) => s + m.total, 0);
+  $('#resumo').innerHTML = mesasCache.length ? `<span>${mesasCache.length} mesa${mesasCache.length > 1 ? 's' : ''} aberta${mesasCache.length > 1 ? 's' : ''}</span><span>${dinheiro(total)}</span>` : '';
+  if (!mesasCache.length) {
+    g.innerHTML = `<div class="vazio" style="grid-column:1/-1">${icone('vazio')}<p>Nenhuma mesa aberta.<br>Toque em <b>Abrir mesa</b> para começar.</p></div>`;
+    return;
+  }
+  if (!lista.length) {
+    g.innerHTML = `<div class="vazio" style="grid-column:1/-1"><p>A mesa ${esc(filtro)} não está aberta.</p><button class="btn btn-pri" id="bt-abrir-filtro">${icone('mais')}Abrir mesa ${esc(filtro)}</button></div>`;
+    $('#bt-abrir-filtro').onclick = () => folhaAbrirMesa(+filtro);
+    return;
+  }
+  g.innerHTML = lista.map(m => {
+    const demorada = minutosAberta(m.abertura, agoraServidor) > 180;
+    return `<button class="mesa${m.itens ? '' : ' vazia'}${demorada ? ' demorada' : ''}" data-seq="${m.seq}">
+      <div class="num"><small>MESA</small>${m.mesa}</div>
+      <div class="val">${dinheiro(m.total)}</div>
+      <div class="info">${m.itens} ${m.itens === 1 ? 'item' : 'itens'} · ${tempoAberta(m.abertura, agoraServidor)}</div>
+    </button>`;
+  }).join('');
+  g.querySelectorAll('.mesa').forEach(b => b.onclick = () => ir('#/mesa/' + b.dataset.seq));
+}
+function folhaAbrirMesa(numero) {
+  abrirFolha(`<h3>Abrir mesa</h3><p class="sub">Informe o número da mesa ou comanda.</p>
+    <form id="f-abrir">
+      <input class="entrada" id="ab-num" inputmode="numeric" pattern="[0-9]*" style="height:64px;font-size:30px;font-weight:700;text-align:center" placeholder="Nº" value="${numero || ''}" autocomplete="off" required>
+      <div class="acoes"><button type="button" class="btn" id="ab-cancelar">Voltar</button><button class="btn btn-pri">Abrir</button></div>
+    </form>`, f => {
+    const inp = $('#ab-num', f);
+    setTimeout(() => inp.focus(), 50);
+    inp.oninput = () => { inp.value = inp.value.replace(/\D/g, '').slice(0, 5); };
+    $('#ab-cancelar', f).onclick = () => fecharFolha();
+    $('#f-abrir', f).onsubmit = async ev => {
+      ev.preventDefault();
+      const mesa = +inp.value;
+      if (!mesa) return inp.focus();
+      const b = f.querySelector('.btn-pri');
+      b.disabled = true;
+      try {
+        const r = await api('abrir', { mesa });
+        fecharFolha(true);
+        if (r.jaAberta) aviso(`A mesa ${mesa} já estava aberta`);
+        else { vibra(30); aviso(`Mesa ${mesa} aberta`); }
+        ir(`#/mesa/${r.seq}/add`, true);
+      } catch (e) { falha(e); b.disabled = false; }
+    };
+  });
+}
+
+/* ---------- comanda (itens da mesa) ---------- */
+let comandaAtual = null;
+async function telaComanda(seq) {
+  const recarregar = async manual => {
+    try {
+      comandaAtual = await api('comanda', { seq });
+      desenharComanda();
+      if (manual) aviso('Atualizado');
+    } catch (e) {
+      falha(e);
+      if (!comandaAtual || comandaAtual.seq !== seq) {
+        tela.innerHTML = `<div class="vazio">Não foi possível abrir a comanda.<br><br><button class="btn" id="bt-tentar">Tentar de novo</button></div>`;
+        $('#bt-tentar').onclick = () => recarregar(true);
+      }
+    }
+  };
+  topo('Mesa', '', { voltar: true, atualizar: () => recarregar(true) });
+  if (comandaAtual && comandaAtual.seq === seq) desenharComanda(); else carregando();
+  await recarregar();
+  S.timer = setInterval(() => { if (!document.hidden && !folhaAberta) recarregar(); }, 20000);
+  S.aoVoltar = () => recarregar();
+}
+function desenharComanda() {
+  const c = comandaAtual;
+  topo('Mesa ' + c.mesa, `Aberta às ${hora(c.abertura)} · há ${tempoAberta(c.abertura, c.agora)}`, { voltar: true, atualizar: $('#atualizar').onclick });
+  const adm = ehAdm();
+  tela.innerHTML = `
+    ${c.aberta ? '' : '<div class="aviso aviso-perigo">Esta comanda já foi fechada ou excluída no caixa.</div>'}
+    <div class="cartao total-mesa"><div><div class="rot">Total da mesa</div><div class="etiqueta">${c.itens.length} ${c.itens.length === 1 ? 'item' : 'itens'}</div></div><div class="val">${dinheiro(c.total)}</div></div>
+    ${c.itens.length ? `<div class="lista">${c.itens.map(i => `
+      <div class="linha">
+        <div class="meio">
+          <div class="tit"><b>${fmtQtd(i.qtd)}${i.qtd % 1 ? '' : '×'}</b> ${esc(i.dsc)}</div>
+          <div class="det">${dinheiro(i.unit)} · ${hora(i.quando)}${i.por ? ' · ' + esc(i.por) : ''}</div>
+        </div>
+        <div class="dir">${dinheiro(i.total)}</div>
+        ${c.aberta && i.podeExcluir ? `<button class="icone-btn" data-item="${i.item}" aria-label="Excluir item">${icone('lixo')}</button>` : ''}
+      </div>`).join('')}</div>`
+      : `<div class="vazio">${icone('vazio')}<p>Nenhum item lançado ainda.</p></div>`}
+    ${c.aberta && !adm && S.garcomExcluiMin > 0 ? `<p class="det" style="color:var(--sub);font-size:13px;text-align:center;margin-top:14px">Você pode excluir itens que lançou nos últimos ${S.garcomExcluiMin} min.</p>` : ''}`;
+  tela.querySelectorAll('[data-item]').forEach(b => b.onclick = () => excluirItem(+b.dataset.item));
+  if (c.aberta) {
+    setRodape(`<button class="btn btn-grande" id="bt-mais" aria-label="Mais opções" style="width:56px;padding:0"><svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button>
+      <button class="btn btn-pri btn-grande" id="bt-add">${icone('mais')}Adicionar itens</button>`);
+    $('#bt-add').onclick = () => ir(`#/mesa/${c.seq}/add`);
+    $('#bt-mais').onclick = menuComanda;
+  } else setRodape('');
+}
+async function excluirItem(nItem) {
+  const c = comandaAtual;
+  const i = c.itens.find(x => x.item === nItem);
+  if (!i) return;
+  const ok = await confirmar('Excluir item?', `${fmtQtd(i.qtd)} × ${i.dsc} (${dinheiro(i.total)}) da mesa ${c.mesa}.`,
+    { botao: 'Excluir', perigo: true, motivo: ehAdm() });
+  if (!ok) return;
+  try {
+    await api('remover', { seq: c.seq, item: nItem, motivo: typeof ok === 'string' ? ok : '' });
+    vibra(30);
+    aviso('Item excluído');
+    comandaAtual = await api('comanda', { seq: c.seq });
+    desenharComanda();
+  } catch (e) { falha(e); }
+}
+function menuComanda() {
+  const c = comandaAtual;
+  const adm = ehAdm();
+  abrirFolha(`<h3>Mesa ${c.mesa}</h3><p class="sub">${dinheiro(c.total)} · ${c.itens.length} ${c.itens.length === 1 ? 'item' : 'itens'}</p>
+    <button class="menu-item" id="mc-trocar">${icone('troca')}Trocar número da mesa</button>
+    <button class="menu-item" id="mc-imprimir">${icone('imprimir')}Imprimir conferência</button>
+    ${adm ? `<button class="menu-item perigo" id="mc-cancelar">${icone('cancelar')}Excluir comanda inteira</button>` : ''}`, f => {
+    $('#mc-trocar', f).onclick = () => folhaTrocarMesa();
+    $('#mc-imprimir', f).onclick = () => { fecharFolha(); imprimirConferencia(); };
+    if (adm) $('#mc-cancelar', f).onclick = async () => {
+      const ok = await confirmar(`Excluir a mesa ${c.mesa}?`, `Todos os ${c.itens.length} itens (${dinheiro(c.total)}) serão excluídos e a comanda some do caixa. Não dá para desfazer.`,
+        { botao: 'Excluir comanda', perigo: true, motivo: true });
+      if (!ok) return;
+      try {
+        await api('cancelar', { seq: c.seq, motivo: typeof ok === 'string' ? ok : '' });
+        aviso(`Mesa ${c.mesa} excluída`);
+        voltarPara('#/');
+      } catch (e) { falha(e); }
+    };
+  });
+}
+function folhaTrocarMesa() {
+  const c = comandaAtual;
+  abrirFolha(`<h3>Trocar mesa ${c.mesa}</h3><p class="sub">Os itens continuam os mesmos; só muda o número.</p>
+    <form id="f-troca">
+      <input class="entrada" id="tr-num" inputmode="numeric" pattern="[0-9]*" style="height:64px;font-size:30px;font-weight:700;text-align:center" placeholder="Novo nº" autocomplete="off" required>
+      <div class="acoes"><button type="button" class="btn" id="tr-voltar">Voltar</button><button class="btn btn-pri">Trocar</button></div>
+    </form>`, f => {
+    const inp = $('#tr-num', f);
+    setTimeout(() => inp.focus(), 50);
+    $('#tr-voltar', f).onclick = () => fecharFolha();
+    $('#f-troca', f).onsubmit = async ev => {
+      ev.preventDefault();
+      const mesa = +inp.value.replace(/\D/g, '');
+      if (!mesa) return inp.focus();
+      try {
+        await api('trocarMesa', { seq: c.seq, mesa });
+        fecharFolha();
+        aviso(`Agora é a mesa ${mesa}`);
+        comandaAtual = await api('comanda', { seq: c.seq });
+        desenharComanda();
+      } catch (e) { falha(e); }
+    };
+  });
+}
+function imprimirConferencia() {
+  const c = comandaAtual;
+  $('#impressao').innerHTML = `<h2>${esc(lojaAtual().nome)}</h2>
+    <div style="text-align:center">CONFERÊNCIA — MESA ${c.mesa}<br>${new Date().toLocaleString('pt-BR')}</div><hr>
+    <table>${c.itens.map(i => `<tr><td colspan="2">${esc(i.dsc)}</td></tr><tr><td>${fmtQtd(i.qtd)} x ${dinheiro(i.unit)}</td><td class="r">${dinheiro(i.total)}</td></tr>`).join('')}</table><hr>
+    <table><tr><td><b>TOTAL</b></td><td class="r"><b>${dinheiro(c.total)}</b></td></tr></table><hr>
+    <div style="text-align:center">Não é documento fiscal</div>`;
+  setTimeout(() => window.print(), 50);
+}
+
+/* ---------- adicionar itens ---------- */
+let buscaSeq = 0, buscaTimer, lancadosAgora = [];
+async function telaAdicionar(seq) {
+  if (!comandaAtual || comandaAtual.seq !== seq) {
+    carregando();
+    try { comandaAtual = await api('comanda', { seq }); } catch (e) { falha(e); return ir('#/', true); }
+  }
+  const c = comandaAtual;
+  if (!c.aberta) { aviso('Esta comanda já foi fechada no caixa.', { erro: true }); return ir('#/mesa/' + seq, true); }
+  lancadosAgora = lancadosAgora.filter(l => l.seq === seq);
+  const sub = () => `Total ${dinheiro(c.total)} · ${c.itens.length} ${c.itens.length === 1 ? 'item' : 'itens'}`;
+  topo(`Mesa ${c.mesa} · Adicionar`, sub(), { voltar: true });
+  tela.innerHTML = `
+    <form class="busca" id="f-busca" role="search">
+      <input class="entrada" id="busca" type="search" enterkeyhint="search" placeholder="Nome, código ou código de barras" autocomplete="off" autocorrect="off" spellcheck="false" aria-label="Buscar produto">
+      <button type="button" class="btn" id="bt-scan" aria-label="Ler código de barras">${icone('camera')}</button>
+    </form>
+    <div id="resultado"></div>`;
+  setRodape(`<button class="btn btn-ok btn-grande btn-largo" id="bt-pronto">Pronto — ver mesa ${c.mesa}</button>`);
+  $('#bt-pronto').onclick = () => voltarPara('#/mesa/' + seq);
+  const inp = $('#busca');
+  const buscarAgora = () => { clearTimeout(buscaTimer); buscar(seq, inp.value, true); };
+  inp.oninput = () => {
+    clearTimeout(buscaTimer);
+    const t = inp.value.trim();
+    if (!t) return desenharLancados();
+    buscaTimer = setTimeout(() => buscar(seq, inp.value, false), /^\d+$/.test(t) ? 600 : 300);
+  };
+  $('#f-busca').onsubmit = ev => { ev.preventDefault(); buscarAgora(); };
+  $('#bt-scan').onclick = () => abrirScanner(cod => { inp.value = cod; buscar(seq, cod, true); });
+  desenharLancados();
+  if (!matchMedia('(pointer: coarse)').matches) inp.focus();
+  else setTimeout(() => inp.focus(), 80);
+  S.atualizaSub = () => topo(`Mesa ${c.mesa} · Adicionar`, sub(), { voltar: true });
+}
+function desenharLancados() {
+  const r = $('#resultado');
+  if (!r) return;
+  if (!lancadosAgora.length) {
+    r.innerHTML = `<div class="vazio">${icone('busca')}<p>Digite o nome do produto (ex.: <b>coca lata</b>),<br>o código ou leia o código de barras.</p></div>`;
+    return;
+  }
+  r.innerHTML = `<div class="subtitulo">Lançados agora</div><div class="lista">${lancadosAgora.slice().reverse().map(l => `
+    <div class="linha"><div class="meio"><div class="tit"><b>${fmtQtd(l.qtd)}${l.qtd % 1 ? '' : '×'}</b> ${esc(l.dsc)}</div><div class="det">${hora(l.quando)}</div></div>
+    <div class="dir">${dinheiro(l.valor)}</div></div>`).join('')}</div>`;
+}
+async function buscar(seq, termo, imediato) {
+  termo = termo.trim();
+  const r = $('#resultado');
+  if (!termo) return desenharLancados();
+  if (!/^\d+$/.test(termo) && termo.length < 2) return;
+  const meu = ++buscaSeq;
+  if (imediato || !r.querySelector('.lista')) r.innerHTML = '<div class="carregando"><div class="giro"></div></div>';
+  try {
+    const res = await api('buscar', { termo });
+    if (meu !== buscaSeq || !$('#resultado')) return;
+    if (!res.produtos.length) {
+      r.innerHTML = `<div class="vazio"><p>Nada encontrado para <b>${esc(termo)}</b>.</p><p style="font-size:14px">Tente uma palavra só, ou parte do nome.</p></div>`;
+      return;
+    }
+    // código de barras lido com um só produto: já abre a quantidade
+    if (imediato && res.barras && res.produtos.length === 1) return folhaQuantidade(seq, res.produtos[0], res.barras);
+    r.innerHTML = `<div class="lista">${res.produtos.map((p, n) => `
+      <button class="linha" data-n="${n}">
+        <div class="meio"><div class="tit">${esc(p.dsc)}</div><div class="det">Cód. ${esc(p.cod)}${p.uni ? ' · ' + esc(p.uni) : ''}${p.fracionado ? ' · por peso' : ''}</div></div>
+        <div class="dir ${p.preco > 0 ? 'preco' : ''}">${p.preco > 0 ? dinheiro(p.preco) : 'sem preço'}</div>
+      </button>`).join('')}</div>
+      ${res.produtos.length >= 60 ? '<p style="text-align:center;color:var(--sub);font-size:13px">Mostrando os 60 primeiros. Digite mais para filtrar.</p>' : ''}`;
+    r.querySelectorAll('[data-n]').forEach(b => b.onclick = () => folhaQuantidade(seq, res.produtos[+b.dataset.n], res.barras));
+  } catch (e) {
+    if (meu === buscaSeq) { falha(e); r.innerHTML = ''; }
+  }
+}
+function folhaQuantidade(seq, p, barras) {
+  if (!(p.preco > 0)) return aviso('Este produto está sem preço no Sysmo.', { erro: true });
+  const frac = p.fracionado;
+  abrirFolha(`<h3>${esc(p.dsc)}</h3><p class="sub">${dinheiro(p.preco)}${p.uni ? ' / ' + esc(p.uni) : ''} · cód. ${esc(p.cod)}</p>
+    <form id="f-qtd">
+      <div class="qtd">
+        <button type="button" class="btn" id="q-menos" aria-label="Diminuir">−</button>
+        <input class="entrada" id="q-val" inputmode="${frac ? 'decimal' : 'numeric'}" value="${frac ? '' : '1'}" placeholder="${frac ? '0,000' : '1'}" autocomplete="off" aria-label="Quantidade">
+        <button type="button" class="btn" id="q-mais" aria-label="Aumentar">+</button>
+      </div>
+      ${frac ? `<div class="atalhos">${['0,250', '0,500', '1,000'].map(v => `<button type="button" class="btn" data-v="${v}">${v}</button>`).join('')}</div>` : ''}
+      <div class="acoes"><button type="button" class="btn" id="q-voltar" style="flex:0 0 auto">Voltar</button><button class="btn btn-pri btn-grande" id="q-ok">Adicionar</button></div>
+    </form>`, f => {
+    const inp = $('#q-val', f);
+    const passo = frac ? 0.1 : 1;
+    const ler = () => { const v = parseFloat(inp.value.replace(/\./g, '').replace(',', '.')); return isNaN(v) ? 0 : v; };
+    const escrever = v => { inp.value = frac ? v.toFixed(3).replace('.', ',') : String(Math.round(v)); atualiza(); };
+    const atualiza = () => {
+      const q = ler();
+      $('#q-ok', f).textContent = q > 0 ? `Adicionar · ${dinheiro(Math.round(q * p.preco * 100) / 100)}` : 'Adicionar';
+    };
+    inp.oninput = () => { if (!frac) inp.value = inp.value.replace(/\D/g, ''); atualiza(); };
+    $('#q-menos', f).onclick = () => escrever(Math.max(frac ? 0 : 1, Math.round((ler() - passo) * 1000) / 1000));
+    $('#q-mais', f).onclick = () => escrever(Math.round((ler() + passo) * 1000) / 1000);
+    f.querySelectorAll('[data-v]').forEach(b => b.onclick = () => { inp.value = b.dataset.v; atualiza(); });
+    $('#q-voltar', f).onclick = () => fecharFolha();
+    atualiza();
+    if (frac) setTimeout(() => inp.focus(), 60);
+    $('#f-qtd', f).onsubmit = async ev => {
+      ev.preventDefault();
+      const qtd = ler();
+      if (!(qtd > 0)) { inp.focus(); return aviso('Informe a quantidade', { erro: true }); }
+      if (!frac && qtd % 1) return aviso('Este produto é vendido por unidade', { erro: true });
+      const b = $('#q-ok', f);
+      b.disabled = true;
+      try {
+        const r = await api('adicionar', { seq, cod: p.cod, qtd, barras: barras || '' });
+        fecharFolha();
+        vibra(40);
+        lancadosAgora.push({ seq, item: r.item, dsc: r.dsc, qtd: r.qtd, valor: r.valor, quando: new Date() });
+        if (comandaAtual && comandaAtual.seq === seq) {
+          comandaAtual.total = r.total;
+          comandaAtual.itens.push({ item: r.item, cod: p.cod, dsc: r.dsc, qtd: r.qtd, unit: p.preco, total: r.valor, quando: new Date(), por: S.usuario.nome, podeExcluir: true });
+          S.atualizaSub && S.atualizaSub();
+        }
+        aviso(`✓ ${fmtQtd(r.qtd)}${r.qtd % 1 ? '' : '×'} ${r.dsc}`, { acao: () => desfazer(seq, r.item, r.dsc) });
+        const busca = $('#busca');
+        if (busca) { busca.value = ''; desenharLancados(); busca.focus(); }
+      } catch (e) { falha(e); b.disabled = false; }
+    };
+  });
+}
+async function desfazer(seq, item, dsc) {
+  try {
+    const r = await api('remover', { seq, item, motivo: 'Desfeito logo após lançar' });
+    lancadosAgora = lancadosAgora.filter(l => !(l.seq === seq && l.item === item));
+    if (comandaAtual && comandaAtual.seq === seq) {
+      comandaAtual.total = r.total;
+      comandaAtual.itens = comandaAtual.itens.filter(i => i.item !== item);
+      S.atualizaSub && S.atualizaSub();
+    }
+    if (!($('#busca') || {}).value) desenharLancados();
+    aviso(`Removido: ${dsc}`);
+  } catch (e) { falha(e); }
+}
+
+/* ---------- leitor de código de barras pela câmera ---------- */
+let scanner = null;
+async function abrirScanner(aoLer) {
+  if (!window.isSecureContext || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    return aviso('A câmera só funciona com o site em https.', { erro: true });
+  }
+  const el = document.createElement('div');
+  el.className = 'scanner';
+  el.innerHTML = `<video playsinline muted autoplay></video><div class="mira"></div>
+    <div class="barra"><p>Aponte para o código de barras</p><button class="btn btn-largo" id="sc-fechar" style="max-width:320px">Fechar</button></div>`;
+  document.body.appendChild(el);
+  const video = $('video', el);
+  scanner = { el, stream: null, ativo: true, zxing: null };
+  $('#sc-fechar', el).onclick = pararScanner;
+  history.pushState({ scanner: true }, '');
+  const lido = cod => {
+    if (!scanner || !scanner.ativo) return;
+    vibra(80);
+    pararScanner(() => aoLer(String(cod).replace(/\D/g, '')));
+  };
+  try {
+    if ('BarcodeDetector' in window) {
+      const formatos = await BarcodeDetector.getSupportedFormats();
+      const det = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'itf'].filter(f => formatos.includes(f)) });
+      scanner.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 1280 } }, audio: false });
+      video.srcObject = scanner.stream;
+      await video.play();
+      const loop = async () => {
+        if (!scanner || !scanner.ativo) return;
+        try {
+          const r = await det.detect(video);
+          const bom = r.find(x => /^\d{6,14}$/.test(x.rawValue));
+          if (bom) return lido(bom.rawValue);
+        } catch (e) {}
+        setTimeout(loop, 150);
+      };
+      loop();
+    } else {
+      // iPhone e navegadores sem leitor nativo: biblioteca ZXing
+      if (!window.ZXing) await new Promise((ok, erro) => {
+        const s = document.createElement('script');
+        s.src = 'https://unpkg.com/@zxing/library@0.21.3/umd/index.min.js';
+        s.onload = ok; s.onerror = () => erro(new Error('Não foi possível carregar o leitor. Confira a internet.'));
+        document.head.appendChild(s);
+      });
+      if (!scanner) return;
+      const leitor = new ZXing.BrowserMultiFormatReader();
+      scanner.zxing = leitor;
+      await leitor.decodeFromConstraints({ video: { facingMode: 'environment' }, audio: false }, video, res => { if (res) lido(res.getText()); });
+    }
+  } catch (e) {
+    pararScanner();
+    aviso(e && e.name === 'NotAllowedError' ? 'Permita o uso da câmera nas configurações do navegador.' : (e.message || 'Não foi possível abrir a câmera.'), { erro: true, ms: 6000 });
+  }
+}
+function pararScanner(depois) {
+  if (!scanner) return;
+  scanner.ativo = false;
+  try { scanner.zxing && scanner.zxing.reset(); } catch (e) {}
+  try { scanner.stream && scanner.stream.getTracks().forEach(t => t.stop()); } catch (e) {}
+  const v = $('video', scanner.el);
+  try { v.srcObject && v.srcObject.getTracks && v.srcObject.getTracks().forEach(t => t.stop()); } catch (e) {}
+  scanner.el.remove();
+  scanner = null;
+  if (history.state && history.state.scanner) {
+    if (depois) window.addEventListener('popstate', () => setTimeout(depois, 0), { once: true });
+    history.back();
+  } else if (depois) depois();
+}
+window.addEventListener('popstate', () => { if (scanner) { scanner.ativo = false; const s = scanner; scanner = null; try { s.zxing && s.zxing.reset(); } catch (e) {} try { s.stream && s.stream.getTracks().forEach(t => t.stop()); } catch (e) {} s.el.remove(); } });
+
+/* ---------- escolher loja ---------- */
+function telaEscolherLoja() {
+  topo('Escolha a loja', S.usuario.nome);
+  if (!S.lojas.length) {
+    tela.innerHTML = ehSuper()
+      ? `<div class="vazio">${icone('sysmo')}<p>Nenhuma loja cadastrada ainda.<br>Cadastre a empresa e o servidor Sysmo de cada loja.</p><button class="btn btn-pri" id="bt-cad">Cadastrar empresa e lojas</button></div>`
+      : `<div class="vazio">${icone('sysmo')}<p>Nenhuma loja liberada para o seu usuário.<br>Peça ao administrador.</p></div>`;
+    if (ehSuper()) $('#bt-cad').onclick = () => ir('#/empresas');
+    return;
+  }
+  const grupos = agrupar(S.lojas, l => l.empresa);
+  tela.innerHTML = grupos.map(([emp, lojas]) => `${grupos.length > 1 ? `<div class="subtitulo">${esc(emp)}</div>` : ''}
+    <div class="lista" style="margin-bottom:12px">${lojas.map(l => `
+      <button class="linha" data-id="${l.id}"><div class="meio"><div class="tit">${esc(l.nome)}</div><div class="det">${esc(l.empresa)}</div></div>
+      ${l.id === S.lojaId ? '<span class="etiqueta">atual</span>' : ''}</button>`).join('')}</div>`).join('');
+  tela.querySelectorAll('[data-id]').forEach(b => b.onclick = () => { escolherLoja(+b.dataset.id); ir('#/', true); });
+}
+function agrupar(lista, chave) {
+  const m = new Map();
+  lista.forEach(x => { const k = chave(x); if (!m.has(k)) m.set(k, []); m.get(k).push(x); });
+  return [...m.entries()];
+}
+async function atualizarLojas() {
+  try {
+    const r = await api('estado');
+    const atual = S.lojaId;
+    definirLojas(r.lojas);
+    if (atual && S.lojas.some(l => l.id === atual)) S.lojaId = atual;
+  } catch (e) {}
+}
+
+/* ---------- usuários (administrador) ---------- */
+async function telaUsuarios() {
+  topo('Usuários', ehSuper() ? 'Todas as empresas' : (S.usuario.empresa || ''), { voltar: true });
+  carregando();
+  setRodape(`<button class="btn btn-pri btn-grande" id="bt-novo">${icone('mais')}Novo usuário</button>`);
+  try {
+    const d = await api('usuarios');
+    $('#bt-novo').onclick = () => folhaUsuario(null, d);
+    const nomeLoja = id => (d.lojas.find(l => l.id === id) || {}).nome || '?';
+    const grupos = agrupar(d.usuarios, u => u.papel === 'super' ? 'Administradores gerais' : (u.empresa || 'Sem empresa'));
+    tela.innerHTML = grupos.map(([g, lista]) => `<div class="subtitulo">${esc(g)}</div><div class="lista" style="margin-bottom:12px">${lista.map(u => `
+      <button class="linha" data-id="${u.id}" style="${u.ativo ? '' : 'opacity:.5'}">
+        <div class="meio"><div class="tit">${esc(u.nome)}</div>
+          <div class="det">${esc(u.login)} · ${PAPEL[u.papel]}${u.papel === 'garcom' ? ' · ' + esc(u.lojas.map(nomeLoja).join(', ') || 'sem loja') : ''}${u.ativo ? '' : ' · desativado'}${u.ultimoAcesso ? ' · entrou ' + lerData(u.ultimoAcesso).toLocaleDateString('pt-BR') : ''}</div></div>
+        ${icone('editar', 'width="20" height="20" style="color:var(--sub);flex:none"')}
+      </button>`).join('')}</div>`).join('');
+    tela.querySelectorAll('[data-id]').forEach(b => b.onclick = () => folhaUsuario(d.usuarios.find(u => u.id === +b.dataset.id), d));
+  } catch (e) { falha(e); tela.innerHTML = ''; }
+}
+function folhaUsuario(u, d) {
+  if (!u && ehSuper() && !d.empresas.length) aviso('Dica: cadastre uma empresa em Empresas e lojas antes de criar garçons.');
+  const eu = !!u && u.id === S.usuario.id;
+  abrirFolha(`<h3>${u ? 'Editar usuário' : 'Novo usuário'}</h3><p class="sub">${u ? 'Deixe a senha em branco para manter a atual.' : 'A pessoa entra com este login e senha.'}</p>
+    <form id="f-usu">
+      <label class="campo"><span>Nome</span><input class="entrada" name="nome" maxlength="60" required value="${esc(u ? u.nome : '')}"></label>
+      <label class="campo"><span>Login</span><input class="entrada" name="login" autocapitalize="none" autocorrect="off" required value="${esc(u ? u.login : '')}"></label>
+      <label class="campo"><span>${u ? 'Nova senha' : 'Senha'}</span><input class="entrada" name="senha" type="password" autocomplete="new-password" ${u ? '' : 'required'} minlength="4"></label>
+      <label class="campo"><span>Tipo</span><select class="entrada" name="papel" ${eu ? 'disabled' : ''}>
+        <option value="garcom">Garçom — abre mesas e lança itens nas lojas marcadas</option>
+        <option value="admin">Administrador da empresa — todas as lojas dela, exclui e cadastra usuários</option>
+        ${ehSuper() ? '<option value="super">Administrador geral — todas as empresas e configurações</option>' : ''}</select></label>
+      <label class="campo" id="us-emp-campo"><span>Empresa</span><select class="entrada" name="empresa">
+        ${d.empresas.map(e => `<option value="${e.id}">${esc(e.nome)}</option>`).join('')}</select></label>
+      <div class="campo" id="us-lojas-campo"><span>Lojas que pode acessar</span><div id="us-lojas" class="lista"></div></div>
+      <label style="display:flex;align-items:center;gap:10px;min-height:44px"><input type="checkbox" name="ativo" ${!u || u.ativo ? 'checked' : ''} ${eu ? 'disabled' : ''} style="width:22px;height:22px"> Ativo (pode entrar)</label>
+      <div class="acoes"><button type="button" class="btn" id="us-voltar">Voltar</button><button class="btn btn-pri">Salvar</button></div>
+    </form>`, f => {
+    const form = $('#f-usu', f);
+    form.papel.value = u ? u.papel : 'garcom';
+    if (u && u.empresaId) form.empresa.value = u.empresaId;
+    const marcadas = new Set(u ? u.lojas : []);
+    const desenhar = () => {
+      const papel = form.papel.value;
+      $('#us-emp-campo', f).classList.toggle('oculto', !ehSuper() || papel === 'super');
+      $('#us-lojas-campo', f).classList.toggle('oculto', papel !== 'garcom');
+      const lojas = d.lojas.filter(l => l.empresaId === +form.empresa.value);
+      if (!u && lojas.length === 1) marcadas.add(lojas[0].id);
+      $('#us-lojas', f).innerHTML = lojas.length ? lojas.map(l => `<label class="linha" style="min-height:52px">
+          <input type="checkbox" value="${l.id}" ${marcadas.has(l.id) ? 'checked' : ''} style="width:22px;height:22px;flex:none">
+          <span class="meio">${esc(l.nome)}</span></label>`).join('')
+        : '<div class="linha det">Esta empresa ainda não tem lojas.</div>';
+      $('#us-lojas', f).querySelectorAll('input').forEach(c => c.onchange = () => { c.checked ? marcadas.add(+c.value) : marcadas.delete(+c.value); });
+    };
+    form.papel.onchange = desenhar;
+    form.empresa.onchange = desenhar;
+    desenhar();
+    $('#us-voltar', f).onclick = () => fecharFolha();
+    form.onsubmit = async ev => {
+      ev.preventDefault();
+      const lojas = [...$('#us-lojas', f).querySelectorAll('input:checked')].map(c => +c.value);
+      try {
+        await api('salvarUsuario', {
+          id: u ? u.id : 0, nome: form.nome.value, login: form.login.value, senha: form.senha.value,
+          papel: form.papel.value, empresaId: +form.empresa.value || 0, lojas, ativo: form.ativo.checked,
+        });
+        fecharFolha();
+        aviso('Usuário salvo');
+        setTimeout(telaUsuarios, 50);
+      } catch (e) { falha(e); }
+    };
+  });
+}
+
+/* ---------- empresas e lojas (administrador geral) ---------- */
+async function telaEmpresas() {
+  topo('Empresas e lojas', 'Servidores Sysmo de cada loja', { voltar: true });
+  carregando();
+  setRodape(`<button class="btn btn-pri btn-grande" id="bt-nova-emp">${icone('mais')}Nova empresa</button>`);
+  $('#bt-nova-emp').onclick = () => folhaEmpresa(null);
+  try {
+    const d = await api('empresas');
+    if (!d.empresas.length) {
+      tela.innerHTML = `<div class="vazio">${icone('sysmo')}<p>Cadastre a primeira empresa (ex.: <b>Munhoz</b>)<br>e depois as lojas dela, com o IP do Sysmo.</p></div>`;
+      return;
+    }
+    tela.innerHTML = d.empresas.map(e => {
+      const lojas = d.lojas.filter(l => l.empresaId === e.id);
+      return `<div class="subtitulo" style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+          <span>${esc(e.nome)}${e.ativo ? '' : ' · desativada'}</span>
+          <button class="btn" data-emp="${e.id}" style="height:36px;font-size:13px;padding:0 12px">${icone('editar')}Editar</button></div>
+        <div class="lista" style="margin-bottom:14px;${e.ativo ? '' : 'opacity:.6'}">${lojas.map(l => `
+          <button class="linha" data-loja="${l.id}" style="${l.ativo ? '' : 'opacity:.5'}">
+            <div class="meio"><div class="tit">${esc(l.nome)}</div>
+              <div class="det">${esc(l.host)}:${l.porta} · ${esc(l.banco)} · empresa Sysmo ${l.cdEmpresa} · ${esc(l.preco)}${l.ativo ? '' : ' · desativada'}</div></div>
+            ${icone('editar', 'width="20" height="20" style="color:var(--sub);flex:none"')}
+          </button>`).join('')}
+          <button class="linha" data-nova="${e.id}" style="color:var(--pri);font-weight:600">${icone('mais', 'width="20" height="20"')}<span class="meio">Nova loja em ${esc(e.nome)}</span></button>
+        </div>`;
+    }).join('');
+    tela.querySelectorAll('[data-emp]').forEach(b => b.onclick = () => folhaEmpresa(d.empresas.find(e => e.id === +b.dataset.emp)));
+    tela.querySelectorAll('[data-loja]').forEach(b => b.onclick = () => folhaLoja(d.lojas.find(l => l.id === +b.dataset.loja), d));
+    tela.querySelectorAll('[data-nova]').forEach(b => b.onclick = () => folhaLoja(null, d, +b.dataset.nova));
+  } catch (e) { falha(e); tela.innerHTML = ''; }
+}
+function folhaEmpresa(e) {
+  abrirFolha(`<h3>${e ? 'Editar empresa' : 'Nova empresa'}</h3><p class="sub">Cada empresa tem as próprias lojas, usuários e histórico.</p>
+    <form id="f-emp">
+      <label class="campo"><span>Nome</span><input class="entrada" name="nome" maxlength="80" required value="${esc(e ? e.nome : '')}" placeholder="ex.: Munhoz"></label>
+      <label style="display:flex;align-items:center;gap:10px;min-height:44px"><input type="checkbox" name="ativo" ${!e || e.ativo ? 'checked' : ''} style="width:22px;height:22px"> Ativa (usuários dela podem entrar)</label>
+      <div class="acoes"><button type="button" class="btn" id="em-voltar">Voltar</button><button class="btn btn-pri">Salvar</button></div>
+    </form>`, f => {
+    const form = $('#f-emp', f);
+    if (!e) setTimeout(() => form.nome.focus(), 60);
+    $('#em-voltar', f).onclick = () => fecharFolha();
+    form.onsubmit = async ev => {
+      ev.preventDefault();
+      try {
+        await api('salvarEmpresa', { id: e ? e.id : 0, nome: form.nome.value, ativo: form.ativo.checked });
+        fecharFolha();
+        aviso('Empresa salva');
+        await atualizarLojas();
+        setTimeout(telaEmpresas, 50);
+      } catch (err) { falha(err); }
+    };
+  });
+}
+function folhaLoja(l, d, empresaId) {
+  const campo = (rot, nome, valor, extra = '') => `<label class="campo"><span>${rot}</span><input class="entrada" name="${nome}" value="${esc(valor)}" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" ${extra}></label>`;
+  abrirFolha(`<h3>${l ? 'Editar loja' : 'Nova loja'}</h3><p class="sub">Dados de acesso ao banco do Sysmo desta loja.</p>
+    <form id="f-loja">
+      <label class="campo"><span>Empresa</span><select class="entrada" name="empresaId">${d.empresas.map(e => `<option value="${e.id}">${esc(e.nome)}</option>`).join('')}</select></label>
+      ${campo('Nome da loja', 'nome', l ? l.nome : '', 'required maxlength="80" placeholder="ex.: Loja Centro"')}
+      ${campo('IP ou endereço do servidor Sysmo', 'host', l ? l.host : '', 'required placeholder="ex.: 177.155.204.155" inputmode="url"')}
+      <div style="display:flex;gap:10px">
+        <div style="flex:1">${campo('Porta', 'porta', l ? l.porta : 5432, 'inputmode="numeric" required')}</div>
+        <div style="flex:2">${campo('Banco', 'banco', l ? l.banco : 'dados', 'required')}</div>
+      </div>
+      <div style="display:flex;gap:10px">
+        <div style="flex:1;min-width:0">${campo('Usuário do banco', 'dbUsuario', l ? l.dbUsuario : 'sysdba', 'required')}</div>
+        <div style="flex:1;min-width:0"><label class="campo"><span>Senha do banco</span><input class="entrada" name="dbSenha" type="password" autocomplete="new-password" placeholder="${l && l.temSenha ? '(guardada)' : ''}"></label></div>
+      </div>
+      <div style="display:flex;gap:10px">
+        <div style="flex:1;min-width:0">${campo('Nº da empresa no Sysmo', 'cdEmpresa', l ? l.cdEmpresa : '', 'inputmode="numeric" required placeholder="1, 2, 100..."')}</div>
+        <div style="flex:1;min-width:0"><label class="campo"><span>Preço usado</span><select class="entrada" name="preco">${['pv1', 'pv2', 'pv3', 'pv4', 'pv5', 'pv6'].map(p => `<option>${p}</option>`).join('')}</select></label></div>
+      </div>
+      ${campo('Código do usuário Sysmo que grava as comandas', 'usuarioSysmo', l ? l.usuarioSysmo : 888, 'inputmode="numeric" required')}
+      <label style="display:flex;align-items:center;gap:10px;min-height:44px"><input type="checkbox" name="ativo" ${!l || l.ativo ? 'checked' : ''} style="width:22px;height:22px"> Ativa (aparece para os usuários)</label>
+      <div id="lj-teste"></div>
+      <div class="acoes"><button type="button" class="btn" id="lj-testar">${icone('sysmo')}Testar</button><button class="btn btn-pri">Salvar</button></div>
+      <button type="button" class="btn btn-largo" id="lj-voltar" style="margin-top:10px;background:transparent">Voltar</button>
+    </form>`, f => {
+    const form = $('#f-loja', f);
+    form.empresaId.value = l ? l.empresaId : empresaId;
+    form.preco.value = l ? l.preco : 'pv2';
+    const dados = () => ({
+      id: l ? l.id : 0, empresaId: +form.empresaId.value, nome: form.nome.value, host: form.host.value.trim(), porta: +form.porta.value,
+      banco: form.banco.value.trim(), dbUsuario: form.dbUsuario.value.trim(), dbSenha: form.dbSenha.value, cdEmpresa: +form.cdEmpresa.value,
+      preco: form.preco.value, usuarioSysmo: +form.usuarioSysmo.value, ativo: form.ativo.checked,
+    });
+    $('#lj-voltar', f).onclick = () => fecharFolha();
+    $('#lj-testar', f).onclick = async () => {
+      const t = $('#lj-teste', f);
+      t.innerHTML = '<div class="carregando" style="padding:12px"><div class="giro"></div></div>';
+      try {
+        const r = await api('testarLoja', dados());
+        t.innerHTML = `<div class="aviso" style="background:var(--ok-suave);color:var(--ok)">Conectou em ${r.ms} ms · ${r.produtos} produtos (${r.comPreco} com preço ${esc(form.preco.value)}) · ${r.abertas} comandas abertas</div>`;
+      } catch (e) { t.innerHTML = `<div class="aviso aviso-perigo">${esc(e.message)}</div>`; }
+    };
+    form.onsubmit = async ev => {
+      ev.preventDefault();
+      try {
+        await api('salvarLoja', dados());
+        fecharFolha();
+        aviso('Loja salva');
+        await atualizarLojas();
+        setTimeout(telaEmpresas, 50);
+      } catch (e) { falha(e); }
+    };
+  });
+}
+
+/* ---------- histórico (administrador) ---------- */
+const ACOES = { abrir: 'Abriu a mesa', item: 'Lançou', remover: 'Excluiu', trocar: 'Trocou mesa', cancelar: 'Excluiu a comanda' };
+async function telaHistorico(dia) {
+  dia = dia || new Date().toLocaleDateString('sv-SE');
+  topo('Histórico', 'Quem fez o quê', { voltar: true, atualizar: () => telaHistorico(dia) });
+  tela.innerHTML = `<label class="campo"><span>Dia</span><input class="entrada" type="date" id="h-dia" value="${dia}"></label><div id="h-lista"><div class="carregando"><div class="giro"></div></div></div>`;
+  $('#h-dia').onchange = ev => telaHistorico(ev.target.value);
+  try {
+    const { historico } = await api('historico', { dia });
+    const el = $('#h-lista');
+    if (!historico.length) { el.innerHTML = '<div class="vazio">Nada registrado neste dia.</div>'; return; }
+    el.innerHTML = `<div class="lista hist">${historico.map(h => `
+      <div class="linha"><div class="hora">${hora(h.momento)}</div>
+        <div class="meio"><div class="tit" style="${h.acao === 'remover' || h.acao === 'cancelar' ? 'color:var(--perigo)' : ''}">${esc(ACOES[h.acao] || h.acao)}${h.mesa ? ' · mesa ' + h.mesa : ''}</div>
+          <div class="det">${esc(h.usuario)}${h.produto ? ' · ' + (h.qtd ? fmtQtd(h.qtd) + ' × ' : '') + esc(h.produto) : ''}${h.detalhe ? ' · ' + esc(h.detalhe) : ''}</div></div>
+        ${h.valor !== null ? `<div class="dir">${dinheiro(h.valor)}</div>` : ''}
+      </div>`).join('')}</div>`;
+  } catch (e) { falha(e); }
+}
+
+/* ---------- minha conta ---------- */
+function telaConta() {
+  const adm = ehAdm() && !!lojaAtual();
+  topo('Minha conta', S.usuario.nome, { voltar: true });
+  tela.innerHTML = `
+    <form class="cartao" id="f-senha">
+      <h3 style="margin:0 0 12px">Trocar minha senha</h3>
+      <input type="text" name="u" autocomplete="username" value="${esc(S.usuario.login)}" class="oculto" readonly>
+      <label class="campo"><span>Senha atual</span><input class="entrada" name="atual" type="password" autocomplete="current-password" required></label>
+      <label class="campo"><span>Nova senha</span><input class="entrada" name="nova" type="password" autocomplete="new-password" required minlength="4"></label>
+      <button class="btn btn-pri btn-largo">Salvar nova senha</button>
+    </form>
+    ${adm ? `<div class="cartao" style="margin-top:12px"><h3 style="margin:0 0 6px">Conexão com o Sysmo</h3>
+      <p style="color:var(--sub);font-size:14px;margin:0 0 12px">Testa o acesso ao Sysmo da loja <b>${esc(nomeLoja())}</b> e mostra a configuração em uso.</p>
+      <button class="btn btn-largo" id="bt-diag">${icone('sysmo')}Testar conexão</button><div id="diag" style="margin-top:12px;font-size:14px"></div></div>` : ''}
+    <p style="text-align:center;color:var(--sub);font-size:12px;margin-top:20px">ComandaApp ${esc(S.versao || '')}</p>`;
+  const f = $('#f-senha');
+  f.onsubmit = async ev => {
+    ev.preventDefault();
+    try {
+      await api('minhaSenha', { atual: f.atual.value, nova: f.nova.value });
+      f.reset();
+      aviso('Senha alterada');
+    } catch (e) { falha(e); }
+  };
+  if (adm) $('#bt-diag').onclick = async () => {
+    const d = $('#diag');
+    d.innerHTML = '<div class="giro" style="margin:auto"></div>';
+    try {
+      const r = await api('diagnostico');
+      d.innerHTML = `<div class="aviso" style="background:var(--ok-suave);color:var(--ok);margin:0 0 8px">Conectado ao Sysmo em ${r.ms} ms</div>
+        Empresa: <b>${r.empresa}</b> · Preço: <b>${esc(r.precoColuna)}</b> · Usuário Sysmo: <b>${r.usuarioSysmo}</b><br>
+        Comandas abertas: <b>${r.abertas}</b> · Produtos com preço: <b>${r.produtosComPreco}</b><br>PHP ${esc(r.php)}`;
+    } catch (e) { d.innerHTML = `<div class="aviso aviso-perigo" style="margin:0">${esc(e.message)}</div>`; }
+  };
+}
+
+/* ---------- início ---------- */
+async function iniciar() {
+  try {
+    const r = await api('estado');
+    S.sistema = r.sistema;
+    S.versao = r.versao;
+    S.usuario = r.usuario;
+    if (r.usuario) definirLojas(r.lojas);
+    S.garcomExcluiMin = r.garcomExcluiMin;
+    if (r.precisaSetup) return telaSetup();
+    rota();
+  } catch (e) {
+    if (e.tratado) return;
+    topo(S.sistema);
+    tela.innerHTML = `<div class="vazio"><p>${esc(e.message)}</p><button class="btn" onclick="iniciar()">Tentar de novo</button></div>`;
+  }
+}
+iniciar();
+</script>
+</body>
+</html>
