@@ -268,7 +268,12 @@ function escolherLoja(id) {
   try { localStorage.setItem(chaveLoja(), String(id)); } catch (e) {}
 }
 
+let telaVersao = 0;
+function respostaAntiga() {
+  return Object.assign(new Error('A tela mudou.'), { tratado: true });
+}
 async function api(acao, dados = {}) {
+  const versao = telaVersao;
   let r, j;
   try {
     r = await fetch('api.php', {
@@ -277,9 +282,14 @@ async function api(acao, dados = {}) {
       body: JSON.stringify({ loja: S.lojaId, ...dados, acao }),
     });
   } catch (e) {
+    if (versao !== telaVersao) throw respostaAntiga();
     throw new Error('Sem internet. Confira o Wi-Fi ou os dados móveis.');
   }
-  try { j = await r.json(); } catch (e) { throw new Error('O servidor respondeu com erro (' + r.status + ').'); }
+  try { j = await r.json(); } catch (e) {
+    if (versao !== telaVersao) throw respostaAntiga();
+    throw new Error('O servidor respondeu com erro (' + r.status + ').');
+  }
+  if (versao !== telaVersao) throw respostaAntiga();
   if (r.status === 401 && acao !== 'entrar' && acao !== 'minhaSenha') {
     S.usuario = null;
     telaLogin(j.erro);
@@ -386,6 +396,7 @@ window.addEventListener('hashchange', () => { if (!folhaAberta) rota(); });
 document.addEventListener('visibilitychange', () => { if (!document.hidden && S.aoVoltar) S.aoVoltar(); });
 
 function rota() {
+  telaVersao++;
   clearInterval(S.timer);
   S.aoVoltar = null;
   pararScanner();
@@ -431,6 +442,17 @@ function marca() {
   return `<div class="marca"><img src="icone.svg" alt=""><h2>${esc(S.sistema)}</h2></div>`;
 }
 function telaLogin(msg) {
+  telaVersao++;
+  clearInterval(S.timer);
+  S.timer = null;
+  S.aoVoltar = null;
+  clearTimeout(buscaTimer);
+  buscaSeq++;
+  pararScanner();
+  fecharFolha(true);
+  mesasCache = [];
+  comandaAtual = null;
+  lancadosAgora = [];
   topo(S.sistema);
   setRodape('');
   tela.innerHTML = `<div class="login">${marca()}
@@ -455,6 +477,7 @@ function telaLogin(msg) {
       definirLojas(r.lojas);
       rota();
     } catch (e) {
+      if (e.tratado) return;
       falha(e);
       f.senha.value = '';
       f.senha.focus();
@@ -478,13 +501,14 @@ function telaSetup() {
     try {
       await api('setup', Object.fromEntries(new FormData(f)));
       await iniciar();
-    } catch (e) { falha(e); }
+    } catch (e) { if (e.tratado) return; falha(e); }
   };
 }
 
 /* ---------- mesas abertas ---------- */
 let mesasCache = [];
 async function telaMesas() {
+  const versao = telaVersao;
   topo('Mesas abertas', nomeLoja(), { atualizar: () => carregarMesas(true) });
   tela.innerHTML = `
     <form class="ir-mesa" id="f-ir">
@@ -507,6 +531,7 @@ async function telaMesas() {
   };
   if (mesasCache.length) desenharMesas();
   await carregarMesas();
+  if (!S.usuario || versao !== telaVersao) return;
   S.timer = setInterval(() => { if (!document.hidden && !folhaAberta) carregarMesas(); }, 15000);
   S.aoVoltar = () => carregarMesas();
 }
@@ -519,6 +544,7 @@ async function carregarMesas(manual) {
     if ($('#grade')) desenharMesas();
     if (manual) aviso('Atualizado');
   } catch (e) {
+    if (e.tratado) return;
     falha(e);
     if ($('#grade') && !mesasCache.length) $('#grade').innerHTML = `<div class="vazio" style="grid-column:1/-1">Não foi possível carregar as mesas.<br><br><button class="btn" onclick="carregarMesas(true)">Tentar de novo</button></div>`;
   }
@@ -571,7 +597,7 @@ function folhaAbrirMesa(numero) {
         if (r.jaAberta) aviso(`A mesa ${mesa} já estava aberta`);
         else { vibra(30); aviso(`Mesa ${mesa} aberta`); }
         ir(`#/mesa/${r.seq}/add`, true);
-      } catch (e) { falha(e); b.disabled = false; }
+      } catch (e) { if (e.tratado) return; falha(e); b.disabled = false; }
     };
   });
 }
@@ -579,12 +605,14 @@ function folhaAbrirMesa(numero) {
 /* ---------- comanda (itens da mesa) ---------- */
 let comandaAtual = null;
 async function telaComanda(seq) {
+  const versao = telaVersao;
   const recarregar = async manual => {
     try {
       comandaAtual = await api('comanda', { seq });
       desenharComanda();
       if (manual) aviso('Atualizado');
     } catch (e) {
+      if (e.tratado) return;
       falha(e);
       if (!comandaAtual || comandaAtual.seq !== seq) {
         tela.innerHTML = `<div class="vazio">Não foi possível abrir a comanda.<br><br><button class="btn" id="bt-tentar">Tentar de novo</button></div>`;
@@ -595,6 +623,7 @@ async function telaComanda(seq) {
   topo('Mesa', '', { voltar: true, atualizar: () => recarregar(true) });
   if (comandaAtual && comandaAtual.seq === seq) desenharComanda(); else carregando();
   await recarregar();
+  if (!S.usuario || versao !== telaVersao) return;
   S.timer = setInterval(() => { if (!document.hidden && !folhaAberta) recarregar(); }, 20000);
   S.aoVoltar = () => recarregar();
 }
@@ -637,7 +666,7 @@ async function excluirItem(nItem) {
     aviso('Item excluído');
     comandaAtual = await api('comanda', { seq: c.seq });
     desenharComanda();
-  } catch (e) { falha(e); }
+  } catch (e) { if (e.tratado) return; falha(e); }
 }
 function menuComanda() {
   const c = comandaAtual;
@@ -656,7 +685,7 @@ function menuComanda() {
         await api('cancelar', { seq: c.seq, motivo: typeof ok === 'string' ? ok : '' });
         aviso(`Mesa ${c.mesa} excluída`);
         voltarPara('#/');
-      } catch (e) { falha(e); }
+      } catch (e) { if (e.tratado) return; falha(e); }
     };
   });
 }
@@ -680,7 +709,7 @@ function folhaTrocarMesa() {
         aviso(`Agora é a mesa ${mesa}`);
         comandaAtual = await api('comanda', { seq: c.seq });
         desenharComanda();
-      } catch (e) { falha(e); }
+      } catch (e) { if (e.tratado) return; falha(e); }
     };
   });
 }
@@ -699,7 +728,7 @@ let buscaSeq = 0, buscaTimer, lancadosAgora = [];
 async function telaAdicionar(seq) {
   if (!comandaAtual || comandaAtual.seq !== seq) {
     carregando();
-    try { comandaAtual = await api('comanda', { seq }); } catch (e) { falha(e); return ir('#/', true); }
+    try { comandaAtual = await api('comanda', { seq }); } catch (e) { if (e.tratado) return; falha(e); return ir('#/', true); }
   }
   const c = comandaAtual;
   if (!c.aberta) { aviso('Esta comanda já foi fechada no caixa.', { erro: true }); return ir('#/mesa/' + seq, true); }
@@ -815,7 +844,7 @@ function folhaQuantidade(seq, p, barras) {
         aviso(`✓ ${fmtQtd(r.qtd)}${r.qtd % 1 ? '' : '×'} ${r.dsc}`, { acao: () => desfazer(seq, r.item, r.dsc) });
         const busca = $('#busca');
         if (busca) { busca.value = ''; desenharLancados(); busca.focus(); }
-      } catch (e) { falha(e); b.disabled = false; }
+      } catch (e) { if (e.tratado) return; falha(e); b.disabled = false; }
     };
   });
 }
@@ -830,7 +859,7 @@ async function desfazer(seq, item, dsc) {
     }
     if (!($('#busca') || {}).value) desenharLancados();
     aviso(`Removido: ${dsc}`);
-  } catch (e) { falha(e); }
+  } catch (e) { if (e.tratado) return; falha(e); }
 }
 
 /* ---------- leitor de código de barras pela câmera ---------- */
@@ -952,7 +981,7 @@ async function telaUsuarios() {
         ${icone('editar', 'width="20" height="20" style="color:var(--sub);flex:none"')}
       </button>`).join('')}</div>`).join('');
     tela.querySelectorAll('[data-id]').forEach(b => b.onclick = () => folhaUsuario(d.usuarios.find(u => u.id === +b.dataset.id), d));
-  } catch (e) { falha(e); tela.innerHTML = ''; }
+  } catch (e) { if (e.tratado) return; falha(e); tela.innerHTML = ''; }
 }
 function folhaUsuario(u, d) {
   if (!u && ehSuper() && !d.empresas.length) aviso('Dica: cadastre uma empresa em Empresas e lojas antes de criar garçons.');
@@ -1003,7 +1032,7 @@ function folhaUsuario(u, d) {
         fecharFolha();
         aviso('Usuário salvo');
         setTimeout(telaUsuarios, 50);
-      } catch (e) { falha(e); }
+      } catch (e) { if (e.tratado) return; falha(e); }
     };
   });
 }
@@ -1037,7 +1066,7 @@ async function telaEmpresas() {
     tela.querySelectorAll('[data-emp]').forEach(b => b.onclick = () => folhaEmpresa(d.empresas.find(e => e.id === +b.dataset.emp)));
     tela.querySelectorAll('[data-loja]').forEach(b => b.onclick = () => folhaLoja(d.lojas.find(l => l.id === +b.dataset.loja), d));
     tela.querySelectorAll('[data-nova]').forEach(b => b.onclick = () => folhaLoja(null, d, +b.dataset.nova));
-  } catch (e) { falha(e); tela.innerHTML = ''; }
+  } catch (e) { if (e.tratado) return; falha(e); tela.innerHTML = ''; }
 }
 function folhaEmpresa(e) {
   abrirFolha(`<h3>${e ? 'Editar empresa' : 'Nova empresa'}</h3><p class="sub">Cada empresa tem as próprias lojas, usuários e histórico.</p>
@@ -1111,7 +1140,7 @@ function folhaLoja(l, d, empresaId) {
         aviso('Loja salva');
         await atualizarLojas();
         setTimeout(telaEmpresas, 50);
-      } catch (e) { falha(e); }
+      } catch (e) { if (e.tratado) return; falha(e); }
     };
   });
 }
@@ -1133,7 +1162,7 @@ async function telaHistorico(dia) {
           <div class="det">${esc(h.usuario)}${h.produto ? ' · ' + (h.qtd ? fmtQtd(h.qtd) + ' × ' : '') + esc(h.produto) : ''}${h.detalhe ? ' · ' + esc(h.detalhe) : ''}</div></div>
         ${h.valor !== null ? `<div class="dir">${dinheiro(h.valor)}</div>` : ''}
       </div>`).join('')}</div>`;
-  } catch (e) { falha(e); }
+  } catch (e) { if (e.tratado) return; falha(e); }
 }
 
 /* ---------- minha conta ---------- */
@@ -1159,7 +1188,7 @@ function telaConta() {
       await api('minhaSenha', { atual: f.atual.value, nova: f.nova.value });
       f.reset();
       aviso('Senha alterada');
-    } catch (e) { falha(e); }
+    } catch (e) { if (e.tratado) return; falha(e); }
   };
   if (adm) $('#bt-diag').onclick = async () => {
     const d = $('#diag');
