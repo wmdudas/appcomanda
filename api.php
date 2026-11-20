@@ -47,10 +47,33 @@ session_set_cookie_params([
     'lifetime' => SESSAO_HORAS * 3600,
     'path' => rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/')), '/') . '/',
     'httponly' => true,
-    'samesite' => 'Strict',
+    // Lax, e nao Strict: quando o app e aberto pelo icone da tela inicial, o
+    // Android trata a abertura como vinda de fora e NAO envia cookie Strict —
+    // o garcom caia direto na tela de login. A protecao continua: a API so
+    // aceita POST com o cabecalho X-Comanda, que outro site nao consegue mandar.
+    'samesite' => 'Lax',
     'secure' => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off',
 ]);
 session_start();
+
+/* A sessao desliza: as 16 horas contam do ULTIMO uso, nao do login.
+   Antes o cookie nascia com validade fixa e nunca era reemitido, entao quem
+   entrou as 19h de ontem era derrubado as 11h de hoje, no meio do almoco — e
+   como os aparelhos entram mais ou menos juntos, caiam mais ou menos juntos.
+   Reemitir o cookie a cada chamada autenticada resolve; gravar $_SESSION
+   ['visto'] de minuto em minuto mantem o arquivo vivo para a limpeza do PHP. */
+if (!empty($_SESSION['uid'])) {
+    if ((int)($_SESSION['visto'] ?? 0) < time() - 60) $_SESSION['visto'] = time();
+    $ck = session_get_cookie_params();
+    setcookie(session_name(), session_id(), [
+        'expires' => time() + SESSAO_HORAS * 3600,
+        'path' => $ck['path'],
+        'domain' => $ck['domain'],
+        'secure' => $ck['secure'],
+        'httponly' => $ck['httponly'],
+        'samesite' => $ck['samesite'],
+    ]);
+}
 
 $in = json_decode(file_get_contents('php://input') ?: '{}', true);
 if (!is_array($in)) erro('Dados inválidos');
@@ -571,12 +594,22 @@ try {
         }
 
         case 'mesas': {
+            /* Tira o entulho da tela SEM esconder dinheiro.
+               Sem filtro nenhum a tela mostrava toda comanda que um dia ficou
+               aberta: medido na Areias, 45 mesas para 15 abertas no dia. Mas
+               esconder tudo que passa de 24 h seria pior — entre as antigas ha
+               a mesa 902, de 13/11, com 20 itens lancados. Entao some so o que
+               e velho E esta vazio; mesa antiga com item continua na tela,
+               porque e conta em aberto e alguem precisa fechar. */
             $rows = sq("SELECT c.cd_sequencial, c.nr_comanda, c.dt_cadastro,
                                (SELECT COUNT(*) FROM tb_comandaitem i WHERE i.cd_sequencial = c.cd_sequencial AND i.dt_exclusao IS NULL) AS itens,
                                (SELECT COALESCE(SUM(i.vl_total), 0) FROM tb_comandaitem i WHERE i.cd_sequencial = c.cd_sequencial AND i.dt_exclusao IS NULL) AS total
                         FROM tb_comanda c
                         WHERE c.fl_situacao = 'C' AND c.cd_empresa = ? AND c.nr_comanda > 0
-                        ORDER BY c.nr_comanda", [emp()])->fetchAll();
+                          AND (c.dt_cadastro >= ?
+                               OR EXISTS (SELECT 1 FROM tb_comandaitem i
+                                           WHERE i.cd_sequencial = c.cd_sequencial AND i.dt_exclusao IS NULL))
+                        ORDER BY c.nr_comanda", [emp(), date('Y-m-d H:i:s', time() - 24 * 3600)])->fetchAll();
             resp([
                 'agora' => agora(),
                 'mesas' => array_map(fn($r) => [

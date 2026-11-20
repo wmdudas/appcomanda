@@ -505,6 +505,14 @@ function telaSetup() {
   };
 }
 
+/* O refresh automatico nao pode passar por cima de quem esta usando a tela:
+   recarregar enquanto o garcom digita a quantidade apaga o que ele escreveu, e
+   foi parte do "esta se atualizando sozinho" que reportaram. */
+function ocupado() {
+  const el = document.activeElement;
+  return !!(el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable));
+}
+
 /* ---------- mesas abertas ---------- */
 let mesasCache = [];
 async function telaMesas() {
@@ -532,13 +540,27 @@ async function telaMesas() {
   if (mesasCache.length) desenharMesas();
   await carregarMesas();
   if (!S.usuario || versao !== telaVersao) return;
-  S.timer = setInterval(() => { if (!document.hidden && !folhaAberta) carregarMesas(); }, 15000);
+  S.timer = setInterval(() => { if (!document.hidden && !folhaAberta && !ocupado()) carregarMesas(); }, 15000);
   S.aoVoltar = () => carregarMesas();
 }
 let agoraServidor = null;
+/* O garcom reclamava de "a comanda sumiu sozinha". Sumia mesmo: quando o caixa
+   fecha a mesa no PDV, ela sai da lista no proximo refresh automatico, sem uma
+   palavra. Agora a tela avisa qual mesa saiu e por que. */
+function avisarMesasQueSairam(antes, depois) {
+  if (!antes.length) return;
+  const agora = new Set(depois.map(m => m.mesa));
+  const saidas = antes.filter(m => !agora.has(m.mesa) && m.itens > 0).map(m => m.mesa);
+  if (!saidas.length) return;
+  const lista = saidas.slice(0, 3).join(', ') + (saidas.length > 3 ? '…' : '');
+  aviso(saidas.length === 1 ? `A mesa ${lista} foi fechada no caixa` : `As mesas ${lista} foram fechadas no caixa`,
+        { ms: 5000 });
+}
+
 async function carregarMesas(manual) {
   try {
     const r = await api('mesas');
+    avisarMesasQueSairam(mesasCache, r.mesas);
     mesasCache = r.mesas;
     agoraServidor = r.agora;
     if ($('#grade')) desenharMesas();
@@ -624,7 +646,7 @@ async function telaComanda(seq) {
   if (comandaAtual && comandaAtual.seq === seq) desenharComanda(); else carregando();
   await recarregar();
   if (!S.usuario || versao !== telaVersao) return;
-  S.timer = setInterval(() => { if (!document.hidden && !folhaAberta) recarregar(); }, 20000);
+  S.timer = setInterval(() => { if (!document.hidden && !folhaAberta && !ocupado()) recarregar(); }, 20000);
   S.aoVoltar = () => recarregar();
 }
 function desenharComanda() {
