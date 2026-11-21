@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <meta name="theme-color" content="#1f2933">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -327,6 +327,29 @@ function falha(e) {
 
 // folha inferior; fecha no "voltar" do celular
 let folhaAberta = null;
+/* Teclado do Android cobrindo a folha.
+   Quando o teclado abre, o Android por padrao NAO encolhe a pagina: a folha,
+   que e fixa no rodape, fica atras do teclado e o garcom digita sem ver o
+   campo nem o botao Adicionar. O `interactive-widget=resizes-content` no meta
+   resolve no Chrome novo; aqui vai a rede de seguranca para o resto, medindo o
+   pedaco de tela que o teclado tomou e levantando a folha na mesma medida. */
+let soltarTeclado = null;
+function acompanharTeclado(fundo) {
+  const vv = window.visualViewport;
+  if (!vv) return null;
+  const ajustar = () => {
+    const tomado = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+    fundo.style.paddingBottom = tomado > 80 ? tomado + 'px' : '';
+  };
+  vv.addEventListener('resize', ajustar);
+  vv.addEventListener('scroll', ajustar);
+  ajustar();
+  return () => {
+    vv.removeEventListener('resize', ajustar);
+    vv.removeEventListener('scroll', ajustar);
+  };
+}
+
 function abrirFolha(html, aoMontar) {
   // trocar uma folha por outra reaproveita a mesma entrada do histórico
   const jaHavia = !!folhaAberta;
@@ -337,12 +360,15 @@ function abrirFolha(html, aoMontar) {
   f.addEventListener('click', ev => { if (ev.target === f) fecharFolha(); });
   document.body.appendChild(f);
   folhaAberta = f;
+  if (soltarTeclado) soltarTeclado();
+  soltarTeclado = acompanharTeclado(f);
   if (!jaHavia) history.pushState({ folha: true }, '');
   if (aoMontar) aoMontar(f.firstElementChild);
   return f.firstElementChild;
 }
 function fecharFolha(semHistorico) {
   if (!folhaAberta) return;
+  if (soltarTeclado) { soltarTeclado(); soltarTeclado = null; }
   folhaAberta.remove();
   folhaAberta = null;
   if (!semHistorico && history.state && history.state.folha) history.back();
@@ -669,10 +695,19 @@ function desenharComanda() {
     ${c.aberta && !adm && S.garcomExcluiMin > 0 ? `<p class="det" style="color:var(--sub);font-size:13px;text-align:center;margin-top:14px">Você pode excluir itens que lançou nos últimos ${S.garcomExcluiMin} min.</p>` : ''}`;
   tela.querySelectorAll('[data-item]').forEach(b => b.onclick = () => excluirItem(+b.dataset.item));
   if (c.aberta) {
+    /* "Pronto" e so o caminho de volta para as mesas, para o garcom terminar o
+       lancamento sem procurar a setinha do canto. NAO fecha a conta: quem fecha
+       e o caixa, no PDV — por isso o aviso diz que a mesa segue aberta. */
     setRodape(`<button class="btn btn-grande" id="bt-mais" aria-label="Mais opções" style="width:56px;padding:0"><svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button>
-      <button class="btn btn-pri btn-grande" id="bt-add">${icone('mais')}Adicionar itens</button>`);
+      <button class="btn btn-grande" id="bt-pronto" style="flex:0 0 auto">Pronto</button>
+      <button class="btn btn-pri btn-grande" id="bt-add">${icone('mais')}Adicionar</button>`);
     $('#bt-add').onclick = () => ir(`#/mesa/${c.seq}/add`);
     $('#bt-mais').onclick = menuComanda;
+    $('#bt-pronto').onclick = () => {
+      const n = (c.itens || []).length;
+      aviso(`Mesa ${c.mesa} pronta · ${n} ${n === 1 ? 'item' : 'itens'} · segue aberta para o caixa`, { ms: 3500 });
+      ir('#/');
+    };
   } else setRodape('');
 }
 async function excluirItem(nItem) {
